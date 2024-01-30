@@ -5,6 +5,7 @@ import static java.util.Objects.isNull;
 import com.datantt.cuentabancaria.domain.dtos.BankAccountDto;
 import com.datantt.cuentabancaria.domain.dtos.CustomerDto;
 import com.datantt.cuentabancaria.domain.dtos.TransactionDto;
+import com.datantt.cuentabancaria.domain.dtos.TransferDTO;
 import com.datantt.cuentabancaria.domain.services.BankAccountService;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-
 /**
  * BankAccountController.
  */
@@ -32,7 +32,7 @@ public class BankAccountController {
 
   /**
    * getList.
-   * */
+   */
   @GetMapping("/")
   @ResponseBody
   public ResponseEntity<?> getList(@RequestParam Map<String, String> params) {
@@ -51,55 +51,69 @@ public class BankAccountController {
       return ResponseEntity.internalServerError().build();
     }
   }
+
   /**
-    * create.
-  */
+   * create.
+   */
   @PostMapping("/")
   @ResponseBody
   public ResponseEntity<?> create(@RequestBody BankAccountDto bankAccountDto) {
     try {
-            System.out.println("INICIO CREAR");
-            Boolean response = bankAccountService.create(bankAccountDto);
-            System.out.println("FIN CREAR");
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
-        } catch (Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
+      System.out.println("INICIO CREAR");
+      Boolean response = bankAccountService.create(bankAccountDto);
+      System.out.println("FIN CREAR");
+      return new ResponseEntity<>(response, HttpStatus.CREATED);
+    } catch (Exception e) {
+      System.out.println("ERROR: " + e.getMessage());
+      return ResponseEntity.internalServerError().build();
     }
+  }
 
   @GetMapping("/transaction")
   @ResponseBody
   public ResponseEntity<?> getListTrasaction(@RequestParam Map<String, String> params) {
-		BankAccountDto request = new BankAccountDto();
-        try {
-            System.out.println("INICIO LISTADO");
-            request.setId(params.get("BankAccountId"));
-            List<TransactionDto> response = bankAccountService.getListTrasaction(request);
-            if (isNull(response)) {
-                return ResponseEntity.noContent().build();
-            }
-            System.out.println("FIN LISTADO");
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
+    BankAccountDto request = new BankAccountDto();
+    try {
+      System.out.println("INICIO LISTADO");
+      request.setId(params.get("BankAccountId"));
+      List<TransactionDto> response = bankAccountService.getListTrasaction(request);
+      if (isNull(response)) {
+        return ResponseEntity.noContent().build();
+      }
+      System.out.println("FIN LISTADO");
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      System.out.println("ERROR: " + e.getMessage());
+      return ResponseEntity.internalServerError().build();
     }
-
+  }
 
   @PostMapping("/transaction")
   @ResponseBody
   public ResponseEntity<?> create(@RequestBody TransactionDto transactionDTO) {
-      try {
-            System.out.println("INICIO CREAR");
-            Boolean response = bankAccountService.createTransaction(transactionDTO);
-            System.out.println("FIN CREAR");
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
-        } catch (Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
+    try {
+      System.out.println("INICIO CREAR");
+      Boolean response = bankAccountService.createTransaction(transactionDTO);
+      System.out.println("FIN CREAR");
+      return new ResponseEntity<>(response, HttpStatus.CREATED);
+    } catch (Exception e) {
+      System.out.println("ERROR: " + e.getMessage());
+      return ResponseEntity.internalServerError().build();
     }
+  }
+
+  @PostMapping("/transfer")
+  @ResponseBody
+  public ResponseEntity<?> create(@RequestBody TransferDTO transferDTO) {
+    try {
+      System.out.println("INICIO CREAR TRANSFERENCIA");
+      Boolean response = bankAccountService.createTransfer(transferDTO);
+      System.out.println("FIN CREAR TRANSFERENCIA");
+      return new ResponseEntity<>(response, HttpStatus.CREATED);
+    } catch (Exception e) {
+      System.out.println("ERROR: " + e.getMessage());
+      return ResponseEntity.internalServerError().build();
+    }
+  }
 
 }

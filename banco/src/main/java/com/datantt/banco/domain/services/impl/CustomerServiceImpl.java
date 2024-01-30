@@ -64,6 +64,8 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     Predicate<String> validateCustomerType = x -> x.equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONAL)
-            || x.equalsIgnoreCase(Constantes.TIPOCLIENTE_EMPRESARIAL);
+            || x.equalsIgnoreCase(Constantes.TIPOCLIENTE_EMPRESARIAL)
+            || x.equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONALVIP)
+            || x.equalsIgnoreCase(Constantes.TIPOCLIENTE_EMPRESARIALPYME);
 
 }

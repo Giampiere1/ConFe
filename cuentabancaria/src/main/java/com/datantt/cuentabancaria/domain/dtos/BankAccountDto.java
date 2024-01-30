@@ -31,4 +31,7 @@ public class BankAccountDto {
   @JsonProperty("Balance")
   public String balance;
 
+  @JsonProperty("NumberTransaction")
+  public String numberTransaction;
+
 }
