@@ -24,165 +24,165 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class BankAccountRepositoryImpl implements BankAccountRepository {
 
-        @Value("${connectionstring}")
-        private String connectionString;
+    @Value("${connectionstring}")
+    private String connectionString;
 
-        @Value("${dbname}")
-        private String dbname;
+    @Value("${dbname}")
+    private String dbname;
 
-        @Value("${accountcollection}")
-        private String accountcollection;
+    @Value("${accountcollection}")
+    private String accountcollection;
 
-        @Value("${detailaccountcollection}")
-        private String detailaccountcollection;
+    @Value("${detailaccountcollection}")
+    private String detailaccountcollection;
 
-        @Value("${transactioncollection}")
-        private String transactioncollection;
+    @Value("${transactioncollection}")
+    private String transactioncollection;
 
-        @Value("${costocomision}")
-        private Double costocomision;
+    @Value("${costocomision}")
+    private Double costocomision;
 
-        @Override
-        public List<Document> getList(CustomerDto customerDto) {
-                System.out.println("CustomerDTO Id");
-                System.out.println(customerDto.getId());
-                List<Document> cuentasFiltradas = new ArrayList<>();
-                MongoClient client = MongoClients.create(connectionString);
-                MongoDatabase database = client.getDatabase(dbname);
-                MongoCollection<Document> detalles = database.getCollection(detailaccountcollection);
-                Document matchStage = new Document("$match",
-                                new Document("Id_Cliente", customerDto.getId()));
-                Document lookupStage = new Document("$lookup",
-                                new Document("from", accountcollection)
-                                                .append("localField", "Id_Cuenta")
-                                                .append("foreignField", "_id")
-                                                .append("as", "cuenta"));
-                Document unwindStage = new Document("$unwind", "$cuenta");
-                Document finalProjectStage = new Document("$project",
-                                new Document("_id", 0)
-                                                .append("_id", "$cuenta._id")
-                                                .append("AccountNumber", "$cuenta.AccountNumber")
-                                                .append("AccountTypeCode", "$cuenta.AccountTypeCode")
-                                                .append("Balance", "$cuenta.Balance"));
-                detalles.aggregate(Arrays.asList(
-                                matchStage, lookupStage, unwindStage, finalProjectStage)).forEach(document -> {
-                                        System.out.println(document.toJson());
-                                        cuentasFiltradas.add(document);
-                                });
-                return cuentasFiltradas;
+    @Override
+    public List<Document> getList(CustomerDto customerDto) {
+        System.out.println("CustomerDTO Id");
+        System.out.println(customerDto.getId());
+        List<Document> cuentasFiltradas = new ArrayList<>();
+        MongoClient client = MongoClients.create(connectionString);
+        MongoDatabase database = client.getDatabase(dbname);
+        MongoCollection<Document> detalles = database.getCollection(detailaccountcollection);
+        Document matchStage = new Document("$match",
+                new Document("Id_Cliente", customerDto.getId()));
+        Document lookupStage = new Document("$lookup",
+                new Document("from", accountcollection)
+                        .append("localField", "Id_Cuenta")
+                        .append("foreignField", "_id")
+                        .append("as", "cuenta"));
+        Document unwindStage = new Document("$unwind", "$cuenta");
+        Document finalProjectStage = new Document("$project",
+                new Document("_id", 0)
+                        .append("_id", "$cuenta._id")
+                        .append("AccountNumber", "$cuenta.AccountNumber")
+                        .append("AccountTypeCode", "$cuenta.AccountTypeCode")
+                        .append("Balance", "$cuenta.Balance"));
+        detalles.aggregate(Arrays.asList(
+                matchStage, lookupStage, unwindStage, finalProjectStage)).forEach(document -> {
+            System.out.println(document.toJson());
+            cuentasFiltradas.add(document);
+        });
+        return cuentasFiltradas;
+    }
+
+    @Override
+    public Document getDetail(String id) {
+        MongoClient client = MongoClients.create(connectionString);
+        MongoDatabase database = client.getDatabase(dbname);
+        MongoCollection<Document> collection = database.getCollection(accountcollection);
+        return collection.find(new Document("_id", new ObjectId(id))).first();
+    }
+
+    @Override
+    public Boolean create(BankAccountDto bankAccountDto) {
+        MongoClient client = MongoClients.create(connectionString);
+        MongoDatabase database = client.getDatabase(dbname);
+        MongoCollection<Document> collection = database.getCollection(accountcollection);
+        Document document = new Document("AccountNumber", bankAccountDto.getAccountNumber())
+                .append("AccountTypeCode", bankAccountDto.getAccountTypeCode())
+                .append("TypeCode", bankAccountDto.getTypeCode())
+                .append("Balance", bankAccountDto.getBalance())
+                .append("NumberTransaction", 0);
+        collection.insertOne(document);
+        collection = database.getCollection(detailaccountcollection);
+        System.out.println("DOCUMENTO CREADO");
+        System.out.println(document.get("_id").toString());
+        for (CustomerDto customerDto : bankAccountDto.getCustomerList()) {
+            Document detail = new Document("Id_Cliente", customerDto.getId())
+                    .append("Id_Cuenta", document.get("_id"))
+                    .append("TypeBusinessCode", customerDto.getCustomerTypeBusinessCode());
+            collection.insertOne(detail);
         }
+        return true;
+    }
 
-        @Override
-        public Document getDetail(String id) {
-                MongoClient client = MongoClients.create(connectionString);
-                MongoDatabase database = client.getDatabase(dbname);
-                MongoCollection<Document> collection = database.getCollection(accountcollection);
-                return collection.find(new Document("_id", new ObjectId(id))).first();
+    @Override
+    public List<Document> getListTransaction(BankAccountDto bankAccountDto) {
+        System.out.println("bankAccountDto Id");
+        System.out.println(bankAccountDto.getId());
+        List<Document> result = new ArrayList<>();
+        MongoClient client = MongoClients.create(connectionString);
+        MongoDatabase database = client.getDatabase(dbname);
+        MongoCollection<Document> transacciones = database.getCollection(transactioncollection);
+        FindIterable<Document> documents = transacciones
+                .find(new Document("BankAccount_Id", new ObjectId(bankAccountDto.getId())));
+        for (Document document : documents) {
+            result.add(document);
         }
+        return result;
+    }
 
-        @Override
-        public Boolean create(BankAccountDto bankAccountDto) {
-                MongoClient client = MongoClients.create(connectionString);
-                MongoDatabase database = client.getDatabase(dbname);
-                MongoCollection<Document> collection = database.getCollection(accountcollection);
-                Document document = new Document("AccountNumber", bankAccountDto.getAccountNumber())
-                                .append("AccountTypeCode", bankAccountDto.getAccountTypeCode())
-                                .append("TypeCode", bankAccountDto.getTypeCode())
-                                .append("Balance", bankAccountDto.getBalance())
-                                .append("NumberTransaction", 0);
-                collection.insertOne(document);
-                collection = database.getCollection(detailaccountcollection);
-                System.out.println("DOCUMENTO CREADO");
-                System.out.println(document.get("_id").toString());
-                for (CustomerDto customerDto : bankAccountDto.getCustomerList()) {
-                        Document detail = new Document("Id_Cliente", customerDto.getId())
-                                        .append("Id_Cuenta", document.get("_id"))
-                                        .append("TypeBusinessCode", customerDto.getCustomerTypeBusinessCode());
-                        collection.insertOne(detail);
-                }
-                return true;
+    @Override
+    public Boolean createTransaction(TransactionDto transactionDto, Boolean hasCommision) {
+        MongoClient client = MongoClients.create(connectionString);
+        MongoDatabase database = client.getDatabase(dbname);
+        MongoCollection<Document> collection = database.getCollection(transactioncollection);
+        Document document = new Document("BankAccount_Id", new ObjectId(transactionDto.getBankaccountId()))
+                .append("TypeTransaction", transactionDto.getTypeTransaction())
+                .append("Amount", transactionDto.getAmount());
+        collection.insertOne(document);
+        if (hasCommision) {
+            document = new Document("BankAccount_Id", new ObjectId(transactionDto.getBankaccountId()))
+                    .append("TypeTransaction", Constantes.TIPOTRANSACCION_COMISION)
+                    .append("Amount", costocomision.toString());
+            collection.insertOne(document);
         }
+        collection = database.getCollection(accountcollection);
+        document = getDetail(transactionDto.getBankaccountId());
+        BankAccountDto account = Util.mapToBankAccountDto(document);
+        System.out.println("balance antes");
+        System.out.println(account.getBalance());
+        Document replace = new Document("$set",
+                new Document("Balance", Double.parseDouble(account.getBalance()) + Double
+                        .parseDouble(transactionDto.getAmount())
+                        * (transactionDto.getTypeTransaction().equalsIgnoreCase(
+                        Constantes.TIPOTRANSACCION_DEPOSITO) ? 1 : -1)
+                        - (hasCommision ? costocomision : 0))
+                        .append("NumberTransaction",
+                                Integer.parseInt(account.getNumberTransaction()) + 1));
+        collection.updateOne(new Document("_id", new ObjectId(transactionDto.getBankaccountId())), replace);
+        return true;
+    }
 
-        @Override
-        public List<Document> getListTransaction(BankAccountDto bankAccountDto) {
-                System.out.println("bankAccountDto Id");
-                System.out.println(bankAccountDto.getId());
-                List<Document> result = new ArrayList<>();
-                MongoClient client = MongoClients.create(connectionString);
-                MongoDatabase database = client.getDatabase(dbname);
-                MongoCollection<Document> transacciones = database.getCollection(transactioncollection);
-                FindIterable<Document> documents = transacciones
-                                .find(new Document("BankAccount_Id", new ObjectId(bankAccountDto.getId())));
-                for (Document document : documents) {
-                        result.add(document);
-                }
-                return result;
-        }
-
-        @Override
-        public Boolean createTransaction(TransactionDto transactionDto, Boolean hasCommision) {
-                MongoClient client = MongoClients.create(connectionString);
-                MongoDatabase database = client.getDatabase(dbname);
-                MongoCollection<Document> collection = database.getCollection(transactioncollection);
-                Document document = new Document("BankAccount_Id", new ObjectId(transactionDto.getBankaccountId()))
-                                .append("TypeTransaction", transactionDto.getTypeTransaction())
-                                .append("Amount", transactionDto.getAmount());
-                collection.insertOne(document);
-                if (hasCommision) {
-                        document = new Document("BankAccount_Id", new ObjectId(transactionDto.getBankaccountId()))
-                                        .append("TypeTransaction", Constantes.TIPOTRANSACCION_COMISION)
-                                        .append("Amount", costocomision.toString());
-                        collection.insertOne(document);
-                }
-                collection = database.getCollection(accountcollection);
-                document = getDetail(transactionDto.getBankaccountId());
-                BankAccountDto account = Util.mapToBankAccountDto(document);
-                System.out.println("balance antes");
-                System.out.println(account.getBalance());
-                Document replace = new Document("$set",
-                                new Document("Balance", Double.parseDouble(account.getBalance()) + Double
-                                                .parseDouble(transactionDto.getAmount())
-                                                * (transactionDto.getTypeTransaction().equalsIgnoreCase(
-                                                                Constantes.TIPOTRANSACCION_DEPOSITO) ? 1 : -1)
-                                                - (hasCommision ? costocomision : 0))
-                                                .append("NumberTransaction",
-                                                                Integer.parseInt(account.getNumberTransaction()) + 1));
-                collection.updateOne(new Document("_id", new ObjectId(transactionDto.getBankaccountId())), replace);
-                return true;
-        }
-
-        @Override
-        public Boolean createTransfer(TransferDTO transferDTO) {
-                MongoClient client = MongoClients.create(connectionString);
-                MongoDatabase database = client.getDatabase(dbname);
-                MongoCollection<Document> collection = database.getCollection(transactioncollection);
-                Document document = new Document("BankAccount_Id", new ObjectId(transferDTO.getBankaccountOriginId()))
-                                .append("TypeTransaction", Constantes.TIPOTRANSACCION_TRANSFERENCIA)
-                                .append("Amount", transferDTO.getAmount());
-                collection.insertOne(document);
-                document = new Document("BankAccount_Id", new ObjectId(transferDTO.getBankaccountDestinationId()))
-                                .append("TypeTransaction", Constantes.TIPOTRANSACCION_TRANSFERENCIA)
-                                .append("Amount", transferDTO.getAmount());
-                collection.insertOne(document);
-                collection = database.getCollection(accountcollection);
-                document = getDetail(transferDTO.getBankaccountOriginId());
-                BankAccountDto bankAccountOrigin = Util.mapToBankAccountDto(document);
-                System.out.println("bankAccountOrigin balance antes");
-                System.out.println(bankAccountOrigin.getBalance());
-                Document replace = new Document("$set",
-                                new Document("Balance", Double.parseDouble(bankAccountOrigin.getBalance()) - Double
-                                                .parseDouble(transferDTO.getAmount())));
-                collection.updateOne(new Document("_id", new ObjectId(transferDTO.getBankaccountOriginId())), replace);
-                document = getDetail(transferDTO.getBankaccountDestinationId());
-                BankAccountDto bankAccountDestination = Util.mapToBankAccountDto(document);
-                System.out.println("bankAccountDestination balance antes");
-                System.out.println(bankAccountDestination.getBalance());
-                Document replaceDestination = new Document("$set",
-                                new Document("Balance", Double.parseDouble(bankAccountDestination.getBalance()) + Double
-                                                .parseDouble(transferDTO.getAmount())));
-                collection.updateOne(new Document("_id", new ObjectId(transferDTO.getBankaccountDestinationId())),
-                                replaceDestination);
-                return true;
-        }
+    @Override
+    public Boolean createTransfer(TransferDTO transferDTO) {
+        MongoClient client = MongoClients.create(connectionString);
+        MongoDatabase database = client.getDatabase(dbname);
+        MongoCollection<Document> collection = database.getCollection(transactioncollection);
+        Document document = new Document("BankAccount_Id", new ObjectId(transferDTO.getBankaccountOriginId()))
+                .append("TypeTransaction", Constantes.TIPOTRANSACCION_TRANSFERENCIA)
+                .append("Amount", transferDTO.getAmount());
+        collection.insertOne(document);
+        document = new Document("BankAccount_Id", new ObjectId(transferDTO.getBankaccountDestinationId()))
+                .append("TypeTransaction", Constantes.TIPOTRANSACCION_TRANSFERENCIA)
+                .append("Amount", transferDTO.getAmount());
+        collection.insertOne(document);
+        collection = database.getCollection(accountcollection);
+        document = getDetail(transferDTO.getBankaccountOriginId());
+        BankAccountDto bankAccountOrigin = Util.mapToBankAccountDto(document);
+        System.out.println("bankAccountOrigin balance antes");
+        System.out.println(bankAccountOrigin.getBalance());
+        Document replace = new Document("$set",
+                new Document("Balance", Double.parseDouble(bankAccountOrigin.getBalance()) - Double
+                        .parseDouble(transferDTO.getAmount())));
+        collection.updateOne(new Document("_id", new ObjectId(transferDTO.getBankaccountOriginId())), replace);
+        document = getDetail(transferDTO.getBankaccountDestinationId());
+        BankAccountDto bankAccountDestination = Util.mapToBankAccountDto(document);
+        System.out.println("bankAccountDestination balance antes");
+        System.out.println(bankAccountDestination.getBalance());
+        Document replaceDestination = new Document("$set",
+                new Document("Balance", Double.parseDouble(bankAccountDestination.getBalance()) + Double
+                        .parseDouble(transferDTO.getAmount())));
+        collection.updateOne(new Document("_id", new ObjectId(transferDTO.getBankaccountDestinationId())),
+                replaceDestination);
+        return true;
+    }
 
 }

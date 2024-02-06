@@ -1,6 +1,15 @@
 package com.datantt.banco.controllers;
 
 import java.util.List;
+
+
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+import lombok.extern.java.Log;
+import lombok.extern.log4j.Log4j;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,87 +30,60 @@ import static java.util.Objects.isNull;
 
 @RequestMapping("/customer")
 @RestController
+@Slf4j
 public class CustomerController {
 
     @Autowired
     private CustomerService customerService;
 
+
     @GetMapping("/")
     @ResponseBody
-    public ResponseEntity<?> getList() {
-        try {
-            System.out.println("INICIO LISTADO");
-            List<CustomerDTO> response = customerService.getList();
-            if (isNull(response)) {
-                return ResponseEntity.noContent().build();
-            }
-            System.out.println("FIN LISTADO");
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
+    public Observable<ResponseEntity<List<CustomerDTO>>> getList() {
+        return customerService.getList()
+                .subscribeOn(Schedulers.io())
+                .doOnSubscribe(disposable -> log.debug("getList:: init"))
+                .doOnComplete(() -> log.info("getList: completed"))
+                .map(ResponseEntity::ok)
+                .onErrorReturn(ex -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
     }
+
+
 
     @GetMapping("/{id}")
     @ResponseBody
-    public ResponseEntity<?> getDetail(@PathVariable String id) {
-        try {
-            System.out.println("INICIO DETALLE");
-            System.out.println(id);
-            CustomerDTO response = customerService.getDetail(id);
-            if (isNull(response)) {
-                return ResponseEntity.noContent().build();
-            }
-            System.out.println("FIN DETALLE");
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
-    }
+    public Single<ResponseEntity<CustomerDTO>> getDetail(@PathVariable String id) {
 
-    @PostMapping("/")
+         return customerService.getDetail(id)
+            .subscribeOn(Schedulers.io())
+                 .map(ResponseEntity::ok)
+                .onErrorReturn(ex -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+       }
+
+   @PostMapping("/")
     @ResponseBody
-    public ResponseEntity<?> create(@RequestBody CustomerDTO customerDTO) {
-        try {
-            System.out.println("INICIO CREAR");
-            Boolean response = customerService.create(customerDTO);
-            System.out.println("FIN CREAR");
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
-        } catch (Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
-    }
+    public Single<ResponseEntity<String>> create(@RequestBody CustomerDTO customerDTO) {
 
+       return customerService.create(customerDTO)
+               .subscribeOn(Schedulers.io())
+               .map(ResponseEntity::ok)
+               .onErrorReturn(ex -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+    }
     @PutMapping("/")
     @ResponseBody
-    public ResponseEntity<?> update(@RequestBody CustomerDTO customerDTO) {
-        try {
-            System.out.println("INICIO ACTUALIZAR");
-            Boolean response = customerService.update(customerDTO);
-            System.out.println("FIN ACTUALIZAR");
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
-        } catch (Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
+    public Single<ResponseEntity<CustomerDTO>> update(@RequestBody CustomerDTO customerDTO) {
+        return customerService.update(customerDTO)
+                .subscribeOn(Schedulers.io())
+                .toSingle(() ->ResponseEntity.ok(customerDTO));
     }
+
 
     @DeleteMapping("/{id}")
     @ResponseBody
-    public ResponseEntity<?> delete(@PathVariable String id) {
-        try {
-            System.out.println("INICIO ELIMINAR");
-            System.out.println(id);
-            Boolean response = customerService.delete(id);
-            System.out.println("FIN ELIMINAR");
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
-        } catch (Exception e) {
-            System.out.println("ERROR: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
+    public Single<ResponseEntity<CustomerDTO>> delete(@PathVariable String id) {
+        return customerService.delete(id)
+                .subscribeOn(Schedulers.io())
+                .toSingle(() ->ResponseEntity.status(HttpStatus.OK).build());
     }
 
 }

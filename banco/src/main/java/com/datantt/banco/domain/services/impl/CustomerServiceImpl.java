@@ -1,16 +1,20 @@
 package com.datantt.banco.domain.services.impl;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 
-import org.bson.Document;
+import com.datantt.banco.domain.util.Constantes;
+import io.reactivex.rxjava3.annotations.NonNull;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Single;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.datantt.banco.domain.dtos.CustomerDTO;
 import com.datantt.banco.domain.services.CustomerService;
-import com.datantt.banco.domain.util.Constantes;
-import com.datantt.banco.domain.util.Util;
 import com.datantt.banco.infraestructure.repositories.CustomerRepository;
 
 @Service
@@ -20,52 +24,90 @@ public class CustomerServiceImpl implements CustomerService {
     private CustomerRepository customerRepository;
 
     @Override
-    public List<CustomerDTO> getList() {
-        List<Document> documents = customerRepository.getList();
-        List<CustomerDTO> result = Util.mapTo(documents, CustomerDTO.class);
-        return result;
+    public Observable<List<CustomerDTO>> getList() {
+        return Observable.defer(() -> Observable.just(customerRepository.findAll()));
     }
+
 
     @Override
-    public CustomerDTO getDetail(String id) {
-        Document document = customerRepository.getDetail(id);
-        CustomerDTO result;
-        if (document != null) {
-            result = Util.mapTo(document, CustomerDTO.class);
-        } else {
-            result = null;
-        }
-        return result;
+    public Single<CustomerDTO> getDetail(String id) {
+        return Single.create(singleSubscriber -> {
+            Optional<CustomerDTO> customerDto = customerRepository.findById(id);
+            if (!customerDto.isPresent())
+                singleSubscriber.onError(new Exception());
+            else {
+                CustomerDTO bookResponse = customerDto.get();
+                singleSubscriber.onSuccess(bookResponse);
+            }
+        });
     }
+
+
+
 
     @Override
-    public Boolean create(CustomerDTO customer) {
-        Boolean result;
-        Boolean validate = validateCustomerType.test(customer.getCustomerTypeCode());
-        if (!validate) {
-            System.out.println("Error en validacion de tipo de cliente.");
-            return false;
-        }
-        result = customerRepository.create(customer);
-        return result;
+    public Single<String> create(CustomerDTO customer) {
+        return Single.create(singleSubscriber -> {
+            Optional<CustomerDTO> customerDTO = customerRepository.findById(customer.getNames());
+            boolean validate = validateCustomerType.test(customer.getCustomerTypeCode());
+            if (!validate || customerDTO.isPresent()) {
+                singleSubscriber.onError(new Error());
+            }
+            else {
+                String customerDtoId = customerRepository.save(customer).getId();
+                singleSubscriber.onSuccess(customerDtoId);
+            }
+        });
     }
+    @Override
+    public Completable update(CustomerDTO customer) {
+        return Completable.create(completableSubscriber -> {
+            Optional<CustomerDTO> customerDTO = customerRepository.findById(customer.getId());
+            boolean validate = validateCustomerType.test(customer.getCustomerTypeCode());
+            if (!customerDTO.isPresent()||!validate )
+                completableSubscriber.onError(new Exception());
+            else {
+
+                    CustomerDTO customerUpdate = customerDTO.get();
+                    customerUpdate.setAddress(customer.getAddress());
+                    customerUpdate.setNames(customer.getNames());
+                    customerUpdate.setEmail(customer.getEmail());
+                    customerUpdate.setLastname(customer.getLastname());
+                    customerUpdate.setTelephone(customer.getTelephone());
+                    customerUpdate.setCustomerTypeCode(customer.getCustomerTypeCode());
+                    customerRepository.save(customerUpdate);
+                    completableSubscriber.onComplete();
+
+
+            }
+        });
+    }
+
 
     @Override
-    public Boolean update(CustomerDTO customer) {
-        Boolean result;
-        result = customerRepository.update(customer);
-        return result;
-    }
 
-    @Override
-    public Boolean delete(String id) {
-        Boolean result = customerRepository.delete(id);
-        return result;
+    public Completable delete(String id) {
+        return Completable.create(completableSubscriber -> {
+            Optional<CustomerDTO> customerDTO = customerRepository.findById(id);
+            if (!customerDTO.isPresent())
+                completableSubscriber.onError(new Exception());
+            else {
+                customerRepository.delete(customerDTO.get());
+                completableSubscriber.onComplete();
+            }
+        });
     }
-
     Predicate<String> validateCustomerType = x -> x.equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONAL)
             || x.equalsIgnoreCase(Constantes.TIPOCLIENTE_EMPRESARIAL)
             || x.equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONALVIP)
             || x.equalsIgnoreCase(Constantes.TIPOCLIENTE_EMPRESARIALPYME);
-
 }
+
+    /*
+
+
+
+
+
+
+}*/

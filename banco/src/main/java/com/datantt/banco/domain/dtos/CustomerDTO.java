@@ -2,19 +2,19 @@ package com.datantt.banco.domain.dtos;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Data
-@Builder
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Document(collection = "customer")
 public class CustomerDTO {
 
-    @JsonProperty("_id")
-    public String _id;
+
+    @JsonProperty("id")
+    public String id;
 
     @JsonProperty("Names")
     public String Names;

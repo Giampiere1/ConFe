@@ -3,7 +3,6 @@ package com.datantt.banco.domain.util;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.reactivex.Single;
 import org.bson.Document;
 
 public class Util {

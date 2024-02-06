@@ -111,13 +111,13 @@ public class BankAccountServiceImpl implements BankAccountService {
         }
         if (!(transactionDTO.getTypeTransaction().equalsIgnoreCase(Constantes.TIPOTRANSACCION_DEPOSITO)
                 && Double.parseDouble(bankAccount.getBalance())
-                        + Double.parseDouble(transactionDTO.getAmount())
-                        - (hasCommision ? costocomision : 0) >= (bankAccount.getTypeCode()
-                                .equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONALVIP) ? minimoahorrovip : 0))
+                + Double.parseDouble(transactionDTO.getAmount())
+                - (hasCommision ? costocomision : 0) >= (bankAccount.getTypeCode()
+                .equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONALVIP) ? minimoahorrovip : 0))
                 && !(transactionDTO.getTypeTransaction().equalsIgnoreCase(Constantes.TIPOTRANSACCION_RETIRO)
-                        && Double.parseDouble(bankAccount.getBalance()) - Double.parseDouble(transactionDTO.getAmount())
-                                - (hasCommision ? costocomision : 0) >= (bankAccount.getTypeCode()
-                                        .equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONALVIP) ? minimoahorrovip : 0))) {
+                && Double.parseDouble(bankAccount.getBalance()) - Double.parseDouble(transactionDTO.getAmount())
+                - (hasCommision ? costocomision : 0) >= (bankAccount.getTypeCode()
+                .equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONALVIP) ? minimoahorrovip : 0))) {
             System.out.println("Error en validacion de transaccion.");
             return false;
         }
@@ -132,7 +132,7 @@ public class BankAccountServiceImpl implements BankAccountService {
         BankAccountDto bankAccountOrigin = Util.mapToBankAccountDto(document);
         if (!(Double.parseDouble(bankAccountOrigin.getBalance())
                 - Double.parseDouble(transferDTO.getAmount()) >= (bankAccountOrigin.getTypeCode()
-                        .equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONALVIP) ? minimoahorrovip : 0))) {
+                .equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONALVIP) ? minimoahorrovip : 0))) {
             System.out.println("Error en validacion de transferencia.");
             return false;
         }
@@ -146,16 +146,16 @@ public class BankAccountServiceImpl implements BankAccountService {
 
     Predicate<BankAccountDto> validateCustomerList = account -> Double.parseDouble(account.getBalance()) >= 0
             && ((account.getTypeCode()
-                    .equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONAL) && account.getCustomerList().size() == 1
-                    && (account.getAccountTypeCode().equalsIgnoreCase(Constantes.TIPOCUENTA_AHORRO)
-                            || account.getAccountTypeCode().equalsIgnoreCase(Constantes.TIPOCUENTA_CUENTACORRIENTE)
-                            || account.getAccountTypeCode().equalsIgnoreCase(Constantes.TIPOCUENTA_PLAZOFIJO)))
-                    || (account.getTypeCode().equalsIgnoreCase(Constantes.TIPOCLIENTE_EMPRESARIAL)
-                            && account.getCustomerList().size() >= 1
-                            && account.getCustomerList().stream().allMatch(validateCustomerBusiness)
-                            && account.getAccountTypeCode().equalsIgnoreCase(Constantes.TIPOCUENTA_CUENTACORRIENTE))
-                    || account.getTypeCode().equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONALVIP)
-                    || account.getTypeCode().equalsIgnoreCase(Constantes.TIPOCLIENTE_EMPRESARIALPYME));
+            .equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONAL) && account.getCustomerList().size() == 1
+            && (account.getAccountTypeCode().equalsIgnoreCase(Constantes.TIPOCUENTA_AHORRO)
+            || account.getAccountTypeCode().equalsIgnoreCase(Constantes.TIPOCUENTA_CUENTACORRIENTE)
+            || account.getAccountTypeCode().equalsIgnoreCase(Constantes.TIPOCUENTA_PLAZOFIJO)))
+            || (account.getTypeCode().equalsIgnoreCase(Constantes.TIPOCLIENTE_EMPRESARIAL)
+            && account.getCustomerList().size() >= 1
+            && account.getCustomerList().stream().allMatch(validateCustomerBusiness)
+            && account.getAccountTypeCode().equalsIgnoreCase(Constantes.TIPOCUENTA_CUENTACORRIENTE))
+            || account.getTypeCode().equalsIgnoreCase(Constantes.TIPOCLIENTE_PERSONALVIP)
+            || account.getTypeCode().equalsIgnoreCase(Constantes.TIPOCLIENTE_EMPRESARIALPYME));
 
     Predicate<BankAccountDto> filterAhorro = object -> object.getAccountTypeCode()
             .equalsIgnoreCase(Constantes.TIPOCUENTA_AHORRO);
